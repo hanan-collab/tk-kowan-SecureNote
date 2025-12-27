@@ -69,6 +69,7 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 ### Path Parameters
 
 | Parameter | Type | Required | Description |
+|----------|-------------|----------|-------------|
 |`id`      |string       |Yes       |The unique UUID of the note to retrieve |
 
 ### Response
