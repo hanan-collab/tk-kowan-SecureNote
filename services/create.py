@@ -20,6 +20,7 @@ def lambda_handler(event, context):
         body = json.loads(event.get('body', '{}'))
         content = body.get('content')
         password = body.get('password')
+        salt = body.get('salt')
 
         minutes_to_expire = body.get('ttl', DEFAULT_TTL_MINUTES)
 
@@ -44,7 +45,8 @@ def lambda_handler(event, context):
             'content': content,
             'created_at': current_time,
             'ttl': expiry_time,
-            'password': password
+            'password': password,
+            'salt': salt
         }
 
         # -- Create shareable link --
