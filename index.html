@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>SecureNote</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        .spinner {
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 9999px;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Decorative illustration */
+        .orb {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(40px);
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-100 p-6">
+
+    <div id="app" class="max-w-7xl mx-auto"></div>
+
+    <script>
+        const API_BASE = "https://fwbua55mdb.execute-api.us-east-1.amazonaws.com/v1";
+        const app = document.getElementById('app');
+
+        /* ===== PAGE TEMPLATES ===== */
+
+        function getHomePage() {
+            return `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ================= LEFT PANEL ================= -->
+                    <section class="bg-white rounded-2xl shadow p-6 space-y-4">
+                        <h1 class="text-2xl font-bold">🔐 SecureNote - Create</h1>
+                        <div id="createForm" class="space-y-4">
+                            <textarea id="content" rows="5" class="w-full border rounded-lg p-3"
+                                placeholder="Write your secret note here..."></textarea>
+                            <div class="relative">
+                                <input id="createPassword" type="password" class="w-full border rounded-lg p-3 pr-20"
+                                    placeholder="Password (optional)">
+                                <button onclick="togglePassword('createPassword', this)"
+                                    class="absolute right-3 top-3 text-sm text-gray-500">
+                                    👁 Show
+                                </button>
+                            </div>
+                            <input id="ttl" type="number" class="w-full border rounded-lg p-3"
+                                placeholder="Expiration (minutes, default 60)">
+                            <button id="createBtn" onclick="createNote()"
+                                class="w-full bg-blue-600 text-white py-2 rounded-lg flex justify-center items-center gap-2 disabled:opacity-50">
+                                <span id="createText" data-original="Create Secure Note">Create Secure Note</span>
+                                <div id="createSpinner" class="spinner hidden"></div>
+                            </button>
+                             <p class="text-sm text-center">Want to read a note? <a href="/read" class="text-blue-600">Go to Read Page</a></p>
+                        </div>
+                    </section>
+                    <!-- ================= RIGHT PANEL ================= -->
+                    <section class="relative overflow-hidden rounded-2xl shadow text-white p-8
+                       bg-gradient-to-br from-zinc-800 via-slate-700 to-zinc-900">
+                        <div class="orb w-40 h-40 bg-blue-400 top-[-40px] left-[-40px]"></div>
+                        <div class="orb w-56 h-56 bg-purple-500 bottom-[-60px] right-[-60px]"></div>
+                        <div id="rightContent" class="relative space-y-4">
+                            <div id="branding">
+                                <h2 class="text-3xl font-bold">SecureNote</h2>
+                                <p class="text-lg opacity-90">Burn after reading.</p>
+                                <div class="mt-6 space-y-2 text-sm opacity-80">
+                                    <p>• Write a secret note</p>
+                                    <p>• Share the generated link</p>
+                                    <p>• Note self-destructs after read or expiry</p>
+                                </div>
+                            </div>
+                            <div id="result" class="hidden space-y-3"></div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+        function getReadPage(uuidValue = '') {
+            return `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ================= LEFT PANEL ================= -->
+                    <section class="bg-white rounded-2xl shadow p-6 space-y-4">
+                        <h1 class="text-2xl font-bold">🔐 SecureNote - Read</h1>
+                        <div id="readForm" class="space-y-4">
+                            <input id="uuid" class="w-full border rounded-lg p-3" placeholder="Secure Note UUID" value="${uuidValue}">
+                            <div class="relative">
+                                <input id="readPassword" type="password" class="w-full border rounded-lg p-3 pr-20"
+                                    placeholder="Password (if required)">
+                                <button onclick="togglePassword('readPassword', this)"
+                                    class="absolute right-3 top-3 text-sm text-gray-500">
+                                    👁 Show
+                                </button>
+                            </div>
+                            <button id="readBtn" onclick="readNote()"
+                                class="w-full bg-green-600 text-white py-2 rounded-lg flex justify-center items-center gap-2 disabled:opacity-50">
+                                <span id="readText" data-original="Read Secure Note">Read Secure Note</span>
+                                <div id="readSpinner" class="spinner hidden"></div>
+                            </button>
+                            <p class="text-sm text-center">Want to create a note? <a href="/" class="text-blue-600">Go to Create Page</a></p>
+                        </div>
+                    </section>
+                    <!-- ================= RIGHT PANEL ================= -->
+                    <section class="relative overflow-hidden rounded-2xl shadow text-white p-8
+                       bg-gradient-to-br from-zinc-800 via-slate-700 to-zinc-900">
+                        <div class="orb w-40 h-40 bg-blue-400 top-[-40px] left-[-40px]"></div>
+                        <div class="orb w-56 h-56 bg-purple-500 bottom-[-60px] right-[-60px]"></div>
+                        <div id="rightContent" class="relative space-y-4">
+                            <div id="branding">
+                                <h2 class="text-3xl font-bold">SecureNote</h2>
+                                <p class="text-lg opacity-90">Burn after reading.</p>
+                            </div>
+                            <div id="result" class="hidden space-y-3"></div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+
+                /* ===== ROUTER ===== */
+                function router() {
+                    const path = window.location.pathname;
+                    const parts = path.split('/');
+        
+                    app.innerHTML = ''; // Clear the app container
+        
+                    if (parts[1] === 'read') {
+                        const uuid = parts[2] || '';
+                        app.innerHTML = getReadPage(uuid);
+                    } else {
+                         app.innerHTML = getHomePage();
+                    }
+                }
+        
+                function navigate(path) {
+                    window.history.pushState({}, path, window.location.origin + path);
+                    router();
+                }
+        
+        
+                /* ===== HELPERS ===== */        function togglePassword(id, btn) {
+            const i = document.getElementById(id);
+            const show = i.type === "password";
+            i.type = show ? "text" : "password";
+            btn.textContent = show ? "🙈 Hide" : "👁 Show";
+        }
+
+        function setLoading(btnId, spinnerId, textId, state) {
+            const btn = document.getElementById(btnId);
+            const spinner = document.getElementById(spinnerId);
+            const text = document.getElementById(textId);
+
+            if (btn && spinner && text) {
+                btn.disabled = state;
+                spinner.classList.toggle("hidden", !state);
+                text.textContent = state ? "Loading..." : text.dataset.original;
+            }
+        }
+
+        function showResult(html) {
+            const branding = document.getElementById('branding');
+            const result = document.getElementById('result');
+            if (branding && result) {
+                branding.classList.add("hidden");
+                result.classList.remove("hidden");
+                result.innerHTML = html;
+            }
+        }
+
+        function field(label, value, copyable = true) {
+            const clean = String(value).trim();
+
+            const safe = clean
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            return `
+              <div class="relative border rounded-lg bg-white p-3">
+                ${copyable ? `
+                  <button
+                    class="copy-btn absolute top-1.5 right-1.5 flex items-center gap-1 
+                           px-2.5 py-1.5 rounded-md text-sm 
+                           text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition"
+                    data-value="${encodeURIComponent(clean)}">
+                    <span>📋 Copy</span>
+                  </button>
+                ` : ""}
+
+                <p class="text-xs text-black">${label}</p>
+                <p class="mt-1 break-words text-gray-600 whitespace-pre-wrap">${safe}</p>
+              </div>`;
+        }
+
+
+        function sanitizeHTML(text) {
+            const temp = document.createElement('div');
+            temp.textContent = text;
+            return temp.innerHTML;
+        }
+
+        /* ===== CREATE ===== */
+        async function createNote() {
+            setLoading('createBtn', 'createSpinner', 'createText', true);
+
+            try {
+                const content = document.getElementById('content').value;
+                const sanitizedContent = sanitizeHTML(content);
+
+                const res = await fetch(`${API_BASE}/create`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        content: sanitizedContent,
+                        password: document.getElementById('createPassword').value,
+                        salt: "random",
+                        ttl: Number(document.getElementById('ttl').value) || 60
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw data;
+
+                const expires =
+                    new Date(data.expires_at * 1000)
+                        .toLocaleString("id-ID", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                            timeZone: "Asia/Jakarta"
+                        }) + " WIB";
+
+                const shareLink = `${window.location.origin}/read/${data.note_id}`;
+
+                showResult(`
+                  <h3 class="text-xl font-semibold">✅ Note Created</h3>
+                  ${field("Note ID", data.note_id)}
+                  ${field("Share Link", shareLink)}
+                  ${field("Expires At", expires, false)}
+                `);
+
+            } catch (e) {
+                showResult(`<h3 class="text-xl font-semibold">❌ Note Creation Failed</h3>
+                <p class="text-red-600 relative border rounded-lg bg-white p-3">Unable to create note. Please make sure all required fields are filled correctly.</p>
+                <p class="text-red-600 relative border rounded-lg bg-white p-3">Error: ${e.message || 'Unknown error'}</p>`);
+            }
+
+            setLoading('createBtn', 'createSpinner', 'createText', false);
+        }
+
+        /* ===== READ ===== */
+        async function readNote() {
+            setLoading('readBtn', 'readSpinner', 'readText', true);
+            const uuid = document.getElementById('uuid').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/read/${uuid}`);
+                const data = await res.json();
+                if (!res.ok) throw data;
+
+                const sanitizedContent = sanitizeHTML(data.content);
+
+                showResult(`<h3 class="text-xl font-semibold">✅ Note Found </h3>
+                  <div class="relative bg-white border rounded-lg p-3">
+                      <button
+                        class="copy-btn absolute top-1.5 right-1.5 flex items-center gap-1
+                               px-2.5 py-1.5 rounded-md text-sm
+                               text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition"
+                        data-value="${encodeURIComponent(data.content)}">
+                        📋 <span>Copy</span>
+                      </button>
+
+                      <p class="text-xs text-black">Content</p>
+                      <pre class="mt-2 text-gray-500 whitespace-pre-wrap break-words">${sanitizedContent}</pre>
+                    </div>
+                `);
+
+            } catch (e) {
+                showResult(`<h3 class="text-xl font-semibold">❌ Failed to Read Note</h3>
+                <p class="text-red-600 relative border rounded-lg bg-white p-3">Error: ${e.message || 'Note not found or an error occurred.'}</p>`)
+            }
+
+            setLoading('readBtn', 'readSpinner', 'readText', false);
+        }
+
+        document.addEventListener("click", (e) => {
+            const btn = e.target.closest(".copy-btn");
+            if (!btn) return;
+
+            const value = decodeURIComponent(btn.dataset.value);
+            navigator.clipboard.writeText(value);
+
+            const label = btn.querySelector("span");
+            const original = label.textContent;
+
+            label.textContent = "✓ Copied";
+            btn.classList.remove("text-blue-600");
+            btn.classList.add("text-green-600");
+
+            setTimeout(() => {
+                label.textContent = original;
+                btn.classList.remove("text-green-600");
+                btn.classList.add("text-blue-600");
+            }, 2000);
+        });
+
+        // Listen for navigation events
+        window.addEventListener('popstate', router);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Intercept local link clicks
+            document.body.addEventListener('click', e => {
+                if (e.target.matches('a[href^="/"]')) {
+                    e.preventDefault();
+                    navigate(e.target.getAttribute('href'));
+                }
+            });
+            router();
+        });
+
+    </script>
+
+</body>
+
+</html>
