@@ -40,7 +40,7 @@ Open the `index.html` file directly in a browser or serve it using a simple stat
 General steps:
 1. Create an S3 bucket
 2. Enable **Static Website Hosting**
-3. Upload the `index.html` file
+3. Upload the `index.html` file and `util/encryption.js` file
 4. Configure the bucket policy to allow public read access
 5. HTTPS integration using **Amazon CloudFront** with S3 bucket domain
 
@@ -115,12 +115,6 @@ https://d15kh86ub0unax.cloudfront.net/
 |----------|-------------|----------|-------------|
 |`id`      |string       |Yes       |The unique UUID of the note to retrieve |
 
-### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `password` | string | Yes | The hashed password to verify against the stored note. |
-
 ### Response
 
 **Sucess (200)**
@@ -128,6 +122,7 @@ https://d15kh86ub0unax.cloudfront.net/
 {
   "message": "Note retrieved and destroyed successfully",
   "content": "encrypted-content-here",
+  "password": "hashed-password-from-db",
   "salt": "random-salt",
   "created_at": 1766902326,
   "ttl": 1766904126
@@ -142,31 +137,10 @@ https://d15kh86ub0unax.cloudfront.net/
 }
 ```
 
-**Error (400): Bad Request - Body Empty**
+**Error (400): Bad Request**
 ```json
 {
-  "message": "Request body is empty"
-}
-```
-
-**Error (400): Bad Request - Invalid JSON**
-```json
-{
-  "message": "Invalid JSON format"
-}
-```
-
-**Error (400): Bad Request - Missing Password**
-```json
-{
-  "message": "Password is required inside request body"
-}
-```
-
-**Error (403): Forbidden - Wrong Password**
-```json
-{
-  "message": "Invalid Password provided."
+  "message": "Note ID is missing"
 }
 ```
 
@@ -189,6 +163,7 @@ https://d15kh86ub0unax.cloudfront.net/
 | Variable | Description |
 |----------|-------------|
 | `NOTES` | DynamoDB table name |
+| `ALLOWED_ORIGIN` | CORS Allowed Origin |
 
 ## Deployment API
 
