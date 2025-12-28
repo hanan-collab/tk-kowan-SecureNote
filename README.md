@@ -64,7 +64,7 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 
 ### Endpoint
 
-`GET /read/{id}`
+`POST /read/{id}`
 
 ### Path Parameters
 
@@ -72,14 +72,11 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 |----------|-------------|----------|-------------|
 |`id`      |string       |Yes       |The unique UUID of the note to retrieve |
 
-### Query Parameters
+### Request Body
 
-| Parameter | Type | Required | Description |
-|----------|-------------|----------|-------------|
-|`password`      |string       |Yes       |The hashed password to verify against the stored note. |
-
-### Example Request
-`https://fwbua55mdb.execute-api.us-east-1.amazonaws.com/v1/read/test-frontend?password=password-dummy`
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `password` | string | Yes | The hashed password to verify against the stored note. |
 
 ### Response
 
@@ -87,7 +84,7 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 ```json
 {
   "message": "Note retrieved and destroyed successfully",
-  "content": "Ini dibuat dari API Create Note, bukan Mock Data",
+  "content": "encrypted-content-here",
   "salt": "random-salt",
   "created_at": 1766902326,
   "ttl": 1766904126
@@ -102,24 +99,45 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 }
 ```
 
-**Error (400): Missing ID or Password Parameter**
+**Error (400): Bad Request - Body Empty**
 ```json
 {
-  "message": "Password is required"
+  "message": "Request body is empty"
 }
 ```
 
-**Error (403): Invalid Password**
+**Error (400): Bad Request - Invalid JSON**
+```json
+{
+  "message": "Invalid JSON format"
+}
+```
+
+**Error (400): Bad Request - Missing Password**
+```json
+{
+  "message": "Password is required inside request body"
+}
+```
+
+**Error (403): Forbidden - Wrong Password**
 ```json
 {
   "message": "Invalid Password provided."
 }
 ```
 
-**Error (404): Note ID not found or already destroyed**
+**Error (404): Not Found**
 ```json
 {
   "message": "Note not found or already destroyed."
+}
+```
+
+**Error (500): Internal Server Error**
+```json
+{
+  "message": "Internal Server Error: <error_details>"
 }
 ```
 

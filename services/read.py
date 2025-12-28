@@ -21,30 +21,37 @@ def lambda_handler(event, context):
         
         note_id = path_params.get('note_id')
 
-        query_params = event.get('queryStringParameters')
-        if not query_params:
-             return build_response(400, {'message': 'Password is required'})
-             
-        input_password = query_params.get('password')
-        if not input_password:
-             return build_response(400, {'message': 'Password cannot be empty'})
+        body_str = event.get('body')
+        if not body_str:
+             return build_response(400, {'message': 'Request body is empty'})
+        
+        try:
+            body_json = json.loads(body_str)
+        except json.JSONDecodeError:
+             return build_response(400, {'message': 'Invalid JSON format'})
 
-    except Exception:
-        return build_response(400, {'message': 'Invalid request'})
+        input_password = body_json.get('password')
+        if not input_password:
+             return build_response(400, {'message': 'Password is required inside request body'})
+
+    except Exception as e:
+        return build_response(400, {'message': f'Invalid request: {str(e)}'})
 
     if note_id == 'test-frontend':
-        return build_response(200, {
-            'message': 'Note retrieved and destroyed successfully (MOCK DATA)',
-            'content': 'API Gateway dan Lambda sudah terhubung. Semoga komputasi awan dapat A', 
-            'password': 'password-dummy',
-            'salt': 'salt-dummy',
-            'created_at': 1709251200     
-        })
+        if input_password == 'password-dummy': 
+            return build_response(200, {
+                'message': 'Note retrieved and destroyed successfully (MOCK DATA)',
+                'content': 'API Gateway dan Lambda sudah terhubung. Semoga komputasi awan dapat A', 
+                'salt': 'salt-dummy',
+                'created_at': 1709251200,
+                'ttl': 1709254800
+            })
+        else:
+             return build_response(403, {'message': 'Invalid Password provided (MOCK)'})
 
     headers = event.get('headers', {})
     user_agent = headers.get('User-Agent', headers.get('user-agent', '')).lower()
     bot_keywords = ['slackbot', 'twitterbot', 'facebookexternalhit', 'discordbot', 'whatsapp', 'telegrambot']
-    
     if any(bot in user_agent for bot in bot_keywords):
         return build_response(200, {'message': 'Link Preview', 'content': 'Hidden.'})
 
@@ -82,7 +89,7 @@ def build_response(status_code, body):
         'headers': {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*', 
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type'
         },
         'body': json.dumps(body, cls=DecimalEncoder)
