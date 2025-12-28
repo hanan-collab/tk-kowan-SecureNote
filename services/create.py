@@ -3,7 +3,7 @@ import boto3
 import uuid
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 dyanomodb = boto3.resource('dynamodb')
 scheduler = boto3.client('scheduler')
@@ -57,7 +57,7 @@ def lambda_handler(event, context):
         table.put_item(Item=item)
 
         # -- Schedule cleanup job --
-        schedule_date = datetime.fromtimestamp(expiry_time)
+        schedule_date = datetime.fromtimestamp(expiry_time, tz=timezone.utc)
         schedule_str = schedule_date.strftime('%Y-%m-%dT%H:%M:%S')
 
         try:
