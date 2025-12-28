@@ -12,6 +12,7 @@ class DecimalEncoder(json.JSONEncoder):
 
 dynamodb = boto3.resource('dynamodb')
 TABLE_NAME = os.environ.get('NOTES')
+ALLOWED_ORIGIN = os.environ.get('ALLOWED_ORIGIN')
 
 def lambda_handler(event, context):    
     try:
@@ -88,7 +89,7 @@ def build_response(status_code, body):
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*', 
+            'Access-Control-Allow-Origin': ALLOWED_ORIGIN, 
             'Access-Control-Allow-Methods': 'POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type'
         },

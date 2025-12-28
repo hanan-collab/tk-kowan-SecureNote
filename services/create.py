@@ -13,6 +13,7 @@ TABLE_NAME = os.environ.get('NOTES')
 CLEANUP_TARGET_ARN = os.environ.get('CLEANUP_TARGET_ARN')
 SCHEDULER_ROLE_ARN = os.environ.get('SCHEDULER_ROLE_ARN')
 APP_BASE_URL = os.environ.get('APP_BASE_URL')
+ALLOWED_ORIGIN = os.environ.get('ALLOWED_ORIGIN')
 DEFAULT_TTL_MINUTES = 60
 
 def lambda_handler(event, context):
@@ -80,7 +81,7 @@ def lambda_handler(event, context):
             'statusCode': 201,
             'headers': {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': ALLOWED_ORIGIN
             },
             'body': json.dumps({
                 'message': 'Note created successfully',
