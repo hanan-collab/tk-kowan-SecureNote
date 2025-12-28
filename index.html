@@ -286,7 +286,7 @@
                 const data = await res.json();
                 if (!res.ok) throw data;
 
-                const decreyptedData = await unlockSecureNote(
+                const decryptedContent = await unlockSecureNote(
                     password,
                     data.salt,
                     data.encrypted_message,
@@ -296,7 +296,7 @@
                 if (!decryptedContent) throw new Error("Invalid password or note not found");
 
                 const sanitizedContent = sanitizeHTML(decryptedContent);
-                
+
                 showResult(`
             <h3 class="text-xl font-semibold">✅ Note Found</h3>
             <div class="relative bg-white border rounded-lg p-3">
