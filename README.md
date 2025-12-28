@@ -6,6 +6,50 @@ A serverless application for creating secure, self-destructing notes with passwo
 
 SecureNote enables users to create encrypted notes that automatically self-destruct after a specified expiration time or immediately after being read. Notes are securely stored in Amazon DynamoDB and are automatically removed using AWS EventBridge Scheduler, ensuring timely cleanup and minimal data retention.
 
+## Frontend Application
+
+The SecureNote frontend is implemented as a **single-page static web application** using a single main file, `index.html`. The application exposes two primary routes:
+
+1. `/` — **Create Note**  
+   Users can write a secure note and define a password required to access it. After the note is created, the user receives the generated `UUID`, a `read link`, and the `expiration date`, which can then be shared with the intended recipient.
+
+2. `/read/{uuid}` — **Read Note**  
+   Users provide the corresponding `UUID` and password to access the secure note. Once the note is successfully read or reaches its expiration time, it is automatically deleted from the system.
+
+The frontend application:
+- Does not use any JavaScript framework (e.g., React, Vue)
+- Relies on **simple client-side routing**
+- Communicates directly with the backend through a **REST API (Amazon API Gateway)**
+
+This approach was chosen to:
+- Simplify the deployment process
+- Reduce dependency complexity
+- Enable direct hosting on static hosting services such as **Amazon S3**
+
+
+## Frontend Deployment (Static Hosting)
+
+The frontend can be deployed using the following approaches:
+
+### Option 1 — Local / Development
+Open the `index.html` file directly in a browser or serve it using a simple static HTTP server.
+
+### Option 2 — Amazon S3 Static Website Hosting (Recommended)
+
+General steps:
+1. Create an S3 bucket
+2. Enable **Static Website Hosting**
+3. Upload the `index.html` file
+4. Configure the bucket policy to allow public read access
+
+Currently the application is accessible via the Amazon S3 static website endpoint:
+```
+http://secure-note-kowan.s3-website-us-east-1.amazonaws.com/
+```
+
+> **Note:**  
+> HTTPS integration using **Amazon CloudFront** is currently under exploration and may depend on IAM restrictions of the AWS account used (e.g., AWS Student or Voclabs accounts).
+
 ## API: Create Note
 
 ### Endpoint
