@@ -64,7 +64,7 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 
 ### Endpoint
 
-`GET /read/{id}`
+`POST /read/{id}`
 
 ### Path Parameters
 
@@ -72,30 +72,72 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 |----------|-------------|----------|-------------|
 |`id`      |string       |Yes       |The unique UUID of the note to retrieve |
 
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `password` | string | Yes | The hashed password to verify against the stored note. |
+
 ### Response
 
 **Sucess (200)**
 ```json
 {
   "message": "Note retrieved and destroyed successfully",
-  "content": "U2FsdGVkX1+...",
-  "password": "hashed-password-string",
-  "salt": "random-salt-string"
+  "content": "encrypted-content-here",
+  "salt": "random-salt",
+  "created_at": 1766902326,
+  "ttl": 1766904126
 }
 ```
 
 **Bot/Preview Detected (200)**
 ```json
 {
-  "message": "Secure Note Link Preview",
-  "content": "This content is hidden for security reasons. Please open the link directly in your browser."
+  "message": "Link Preview",
+  "content": "Hidden."
 }
 ```
 
-**Error (400)**
+**Error (400): Bad Request - Body Empty**
+```json
+{
+  "message": "Request body is empty"
+}
+```
+
+**Error (400): Bad Request - Invalid JSON**
+```json
+{
+  "message": "Invalid JSON format"
+}
+```
+
+**Error (400): Bad Request - Missing Password**
+```json
+{
+  "message": "Password is required inside request body"
+}
+```
+
+**Error (403): Forbidden - Wrong Password**
+```json
+{
+  "message": "Invalid Password provided."
+}
+```
+
+**Error (404): Not Found**
 ```json
 {
   "message": "Note not found or already destroyed."
+}
+```
+
+**Error (500): Internal Server Error**
+```json
+{
+  "message": "Internal Server Error: <error_details>"
 }
 ```
 

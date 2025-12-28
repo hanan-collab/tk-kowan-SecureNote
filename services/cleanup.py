@@ -1,5 +1,6 @@
 import json
 import boto3
+import os
 
 TABLE_NAME = os.environ.get('NOTES')
 dynamodb = boto3.resource('dynamodb')
