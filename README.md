@@ -102,6 +102,7 @@ https://d15kh86ub0unax.cloudfront.net/
 | `CLEANUP_TARGET_ARN` | ARN of the cleanup Lambda function |
 | `SCHEDULER_ROLE_ARN` | IAM role ARN for EventBridge Scheduler |
 | `APP_BASE_URL` | Base URL for generating shareable links |
+| `ALLOWED_ORIGIN` | CORS Allowed Origin |
 
 ## API: Read Note
 
