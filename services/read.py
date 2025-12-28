@@ -2,10 +2,15 @@ import json
 import boto3
 import os
 from botocore.exceptions import ClientError
+from decimal import Decimal
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return int(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 dynamodb = boto3.resource('dynamodb')
-
-# -- Environment Variables --
 TABLE_NAME = os.environ.get('NOTES')
 
 def lambda_handler(event, context):    
@@ -15,51 +20,61 @@ def lambda_handler(event, context):
              return build_response(400, {'message': 'Note ID is missing'})
         
         note_id = path_params.get('note_id')
+
+        query_params = event.get('queryStringParameters')
+        if not query_params:
+             return build_response(400, {'message': 'Password is required'})
+             
+        input_password = query_params.get('password')
+        if not input_password:
+             return build_response(400, {'message': 'Password cannot be empty'})
+
     except Exception:
         return build_response(400, {'message': 'Invalid request'})
 
+    if note_id == 'test-frontend':
+        return build_response(200, {
+            'message': 'Note retrieved and destroyed successfully (MOCK DATA)',
+            'content': 'API Gateway dan Lambda sudah terhubung. Semoga komputasi awan dapat A', 
+            'password': 'password-dummy',
+            'salt': 'salt-dummy',
+            'created_at': 1709251200     
+        })
+
     headers = event.get('headers', {})
     user_agent = headers.get('User-Agent', headers.get('user-agent', '')).lower()
-    
     bot_keywords = ['slackbot', 'twitterbot', 'facebookexternalhit', 'discordbot', 'whatsapp', 'telegrambot']
     
     if any(bot in user_agent for bot in bot_keywords):
-        print(f"Bot detected: {user_agent}. Preventing deletion.")
-        return build_response(200, {
-            'message': 'Secure Note Link Preview',
-            'content': 'This content is hidden for security reasons. Please open the link directly in your browser.'
-        })
+        return build_response(200, {'message': 'Link Preview', 'content': 'Hidden.'})
 
     table = dynamodb.Table(TABLE_NAME)
     
     try:
-        response = table.delete_item(
-            Key={
-                'note_id': note_id
-            },
-            ConditionExpression='attribute_exists(note_id)', 
-            ReturnValues='ALL_OLD' 
-        )
+        response = table.get_item(Key={'note_id': note_id})
+        item = response.get('Item')
+
+        if not item:
+            return build_response(404, {'message': 'Note not found or already destroyed.'})
+
+        stored_password = item.get('password')
         
-        deleted_item = response.get('Attributes')
+        if input_password != stored_password:
+            return build_response(403, {'message': 'Invalid Password provided.'})
+
+        table.delete_item(Key={'note_id': note_id})
         
         return build_response(200, {
             'message': 'Note retrieved and destroyed successfully',
-            'content': deleted_item.get('content'),
-            'password': deleted_item.get('password'),
-            'salt': deleted_item.get('salt')          
+            'content': item.get('content'),
+            'salt': item.get('salt'),
+            'created_at': item.get('created_at'),
+            'ttl': item.get('ttl')
         })
 
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-            return build_response(404, {'message': 'Note not found or already destroyed.'})
-        else:
-            print(f"Database error: {e}")
-            return build_response(500, {'message': 'Internal Server Error'})
-            
     except Exception as e:
-        print(f"Unexpected error: {e}")
-        return build_response(500, {'message': f"Error: {str(e)}"})
+        print(f"Error: {e}")
+        return build_response(500, {'message': f"Internal Server Error: {str(e)}"})
 
 def build_response(status_code, body):
     return {
@@ -70,5 +85,5 @@ def build_response(status_code, body):
             'Access-Control-Allow-Methods': 'GET, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type'
         },
-        'body': json.dumps(body)
+        'body': json.dumps(body, cls=DecimalEncoder)
     }
