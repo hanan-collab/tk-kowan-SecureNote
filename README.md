@@ -72,27 +72,51 @@ SecureNote enables users to create encrypted notes that automatically self-destr
 |----------|-------------|----------|-------------|
 |`id`      |string       |Yes       |The unique UUID of the note to retrieve |
 
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|-------------|----------|-------------|
+|`password`      |string       |Yes       |The hashed password to verify against the stored note. |
+
+### Example Request
+`https://fwbua55mdb.execute-api.us-east-1.amazonaws.com/v1/read/test-frontend?password=password-dummy`
+
 ### Response
 
 **Sucess (200)**
 ```json
 {
   "message": "Note retrieved and destroyed successfully",
-  "content": "U2FsdGVkX1+...",
-  "password": "hashed-password-string",
-  "salt": "random-salt-string"
+  "content": "Ini dibuat dari API Create Note, bukan Mock Data",
+  "salt": "random-salt",
+  "created_at": 1766902326,
+  "ttl": 1766904126
 }
 ```
 
 **Bot/Preview Detected (200)**
 ```json
 {
-  "message": "Secure Note Link Preview",
-  "content": "This content is hidden for security reasons. Please open the link directly in your browser."
+  "message": "Link Preview",
+  "content": "Hidden."
 }
 ```
 
-**Error (400)**
+**Error (400): Missing ID or Password Parameter**
+```json
+{
+  "message": "Password is required"
+}
+```
+
+**Error (403): Invalid Password**
+```json
+{
+  "message": "Invalid Password provided."
+}
+```
+
+**Error (404): Note ID not found or already destroyed**
 ```json
 {
   "message": "Note not found or already destroyed."
