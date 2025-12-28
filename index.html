@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>SecureNote</title>
+    <title>SecureNote V2</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Tailwind -->
@@ -40,7 +40,10 @@
     <div id="app" class="max-w-7xl mx-auto"></div>
 
     <script>
-        const API_BASE = "https://fwbua55mdb.execute-api.us-east-1.amazonaws.com/v1";
+        window.__ENV__ = {
+            API_BASE: "https://fwbua55mdb.execute-api.us-east-1.amazonaws.com/v1"
+        };
+        const API_BASE = window.__ENV__.API_BASE;
         const app = document.getElementById('app');
 
         /* ===== PAGE TEMPLATES ===== */
@@ -56,7 +59,7 @@
                                 placeholder="Write your secret note here..."></textarea>
                             <div class="relative">
                                 <input id="createPassword" type="password" class="w-full border rounded-lg p-3 pr-20"
-                                    placeholder="Password (optional)">
+                                    placeholder="Password">
                                 <button onclick="togglePassword('createPassword', this)"
                                     class="absolute right-3 top-3 text-sm text-gray-500">
                                     👁 Show
@@ -104,7 +107,7 @@
                             <input id="uuid" class="w-full border rounded-lg p-3" placeholder="Secure Note UUID" value="${uuidValue}">
                             <div class="relative">
                                 <input id="readPassword" type="password" class="w-full border rounded-lg p-3 pr-20"
-                                    placeholder="Password (if required)">
+                                    placeholder="Password">
                                 <button onclick="togglePassword('readPassword', this)"
                                     class="absolute right-3 top-3 text-sm text-gray-500">
                                     👁 Show
@@ -135,28 +138,24 @@
             `;
         }
 
-                /* ===== ROUTER ===== */
-                function router() {
-                    const path = window.location.pathname;
-                    const parts = path.split('/');
-        
-                    app.innerHTML = ''; // Clear the app container
-        
-                    if (parts[1] === 'read') {
-                        const uuid = parts[2] || '';
-                        app.innerHTML = getReadPage(uuid);
-                    } else {
-                         app.innerHTML = getHomePage();
-                    }
-                }
-        
-                function navigate(path) {
-                    window.history.pushState({}, path, window.location.origin + path);
-                    router();
-                }
-        
-        
-                /* ===== HELPERS ===== */        function togglePassword(id, btn) {
+        /* ===== ROUTER ===== */
+        function router() {
+            const path = window.location.pathname;
+            const parts = path.split('/').filter(Boolean);
+
+            app.innerHTML = '';
+
+            if (parts[0] === 'read') {
+                const uuid = parts[1] || '';
+                app.innerHTML = getReadPage(uuid);
+            } else {
+                app.innerHTML = getHomePage();
+            }
+        }
+
+
+        /* ===== HELPERS ===== */
+        function togglePassword(id, btn) {
             const i = document.getElementById(id);
             const show = i.type === "password";
             i.type = show ? "text" : "password";
@@ -197,7 +196,8 @@
               <div class="relative border rounded-lg bg-white p-3">
                 ${copyable ? `
                   <button
-                    class="copy-btn absolute top-1.5 right-1.5 flex items-center gap-1 
+                    type="button"
+                    class="copy-btn cursor-pointer select-none absolute top-1.5 right-1.5 flex items-center gap-1 
                            px-2.5 py-1.5 rounded-md text-sm 
                            text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition"
                     data-value="${encodeURIComponent(clean)}">
@@ -247,7 +247,7 @@
                             timeZone: "Asia/Jakarta"
                         }) + " WIB";
 
-                const shareLink = `${window.location.origin}/read/${data.note_id}`;
+                const shareLink = `${window.location.origin}${window.location.pathname}/read/${data.note_id}`;
 
                 showResult(`
                   <h3 class="text-xl font-semibold">✅ Note Created</h3>
@@ -268,71 +268,90 @@
         /* ===== READ ===== */
         async function readNote() {
             setLoading('readBtn', 'readSpinner', 'readText', true);
+
             const uuid = document.getElementById('uuid').value;
+            const password = document.getElementById('readPassword').value;
 
             try {
-                const res = await fetch(`${API_BASE}/read/${uuid}`);
+                const res = await fetch(`${API_BASE}/read/${uuid}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        password: password || null
+                    })
+                });
+
                 const data = await res.json();
                 if (!res.ok) throw data;
 
                 const sanitizedContent = sanitizeHTML(data.content);
 
-                showResult(`<h3 class="text-xl font-semibold">✅ Note Found </h3>
-                  <div class="relative bg-white border rounded-lg p-3">
-                      <button
-                        class="copy-btn absolute top-1.5 right-1.5 flex items-center gap-1
-                               px-2.5 py-1.5 rounded-md text-sm
-                               text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition"
-                        data-value="${encodeURIComponent(data.content)}">
-                        📋 <span>Copy</span>
-                      </button>
+                showResult(`
+            <h3 class="text-xl font-semibold">✅ Note Found</h3>
+            <div class="relative bg-white border rounded-lg p-3">
+                <button
+                    type="button"
+                    class="copy-btn cursor-pointer select-none absolute top-1.5 right-1.5 flex items-center gap-1
+                           px-2.5 py-1.5 rounded-md text-sm
+                           text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition"
+                    data-value="${encodeURIComponent(data.content)}">
+                    📋 <span>Copy</span>
+                </button>
 
-                      <p class="text-xs text-black">Content</p>
-                      <pre class="mt-2 text-gray-500 whitespace-pre-wrap break-words">${sanitizedContent}</pre>
-                    </div>
-                `);
+                <p class="text-xs text-black">Content</p>
+                <pre class="mt-2 text-gray-600 whitespace-pre-wrap break-words">
+${sanitizedContent}
+                </pre>
+            </div>
+        `);
 
             } catch (e) {
-                showResult(`<h3 class="text-xl font-semibold">❌ Failed to Read Note</h3>
-                <p class="text-red-600 relative border rounded-lg bg-white p-3">Error: ${e.message || 'Note not found or an error occurred.'}</p>`)
+                showResult(`
+            <h3 class="text-xl font-semibold">❌ Failed to Read Note</h3>
+            <p class="text-red-600 border rounded-lg bg-white p-3">
+                ${e.message || "Invalid password or note not found"}
+            </p>
+        `);
             }
 
             setLoading('readBtn', 'readSpinner', 'readText', false);
         }
 
-        document.addEventListener("click", (e) => {
+        document.addEventListener("click", async (e) => {
             const btn = e.target.closest(".copy-btn");
             if (!btn) return;
 
             const value = decodeURIComponent(btn.dataset.value);
-            navigator.clipboard.writeText(value);
 
-            const label = btn.querySelector("span");
-            const original = label.textContent;
+            try {
+                await navigator.clipboard.writeText(value);
 
-            label.textContent = "✓ Copied";
-            btn.classList.remove("text-blue-600");
-            btn.classList.add("text-green-600");
+                const label = btn.querySelector("span");
+                const original = label.textContent;
 
-            setTimeout(() => {
-                label.textContent = original;
-                btn.classList.remove("text-green-600");
-                btn.classList.add("text-blue-600");
-            }, 2000);
+                label.textContent = "✓ Copied";
+                btn.classList.remove("text-blue-600");
+                btn.classList.add("text-green-600");
+
+                setTimeout(() => {
+                    label.textContent = original;
+                    btn.classList.remove("text-green-600");
+                    btn.classList.add("text-blue-600");
+                }, 2000);
+
+            } catch (err) {
+                alert("Copy failed. Please copy manually.");
+                console.error("Clipboard error:", err);
+            }
         });
 
-        // Listen for navigation events
-        window.addEventListener('popstate', router);
-        document.addEventListener('DOMContentLoaded', () => {
-            // Intercept local link clicks
-            document.body.addEventListener('click', e => {
-                if (e.target.matches('a[href^="/"]')) {
-                    e.preventDefault();
-                    navigate(e.target.getAttribute('href'));
-                }
-            });
-            router();
-        });
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', router);
+        // Load the initial route
+        window.addEventListener('DOMContentLoaded', router);
 
     </script>
 
