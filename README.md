@@ -41,14 +41,12 @@ General steps:
 2. Enable **Static Website Hosting**
 3. Upload the `index.html` file
 4. Configure the bucket policy to allow public read access
+5. HTTPS integration using **Amazon CloudFront** with S3 bucket domain
 
-Currently the application is accessible via the Amazon S3 static website endpoint:
+Currently the application can be accessed from:
 ```
-http://secure-note-kowan.s3-website-us-east-1.amazonaws.com/
+https://d15kh86ub0unax.cloudfront.net/
 ```
-
-> **Note:**  
-> HTTPS integration using **Amazon CloudFront** is currently under exploration and may depend on IAM restrictions of the AWS account used (e.g., AWS Student or Voclabs accounts).
 
 ## API: Create Note
 
