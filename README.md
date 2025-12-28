@@ -20,6 +20,7 @@ The frontend application:
 - Does not use any JavaScript framework (e.g., React, Vue)
 - Relies on **simple client-side routing**
 - Communicates directly with the backend through a **REST API (Amazon API Gateway)**
+- `utils/encryption.js` implements client-side encryption to ensure that note contents are encrypted prior to transmission to the backend API.
 
 This approach was chosen to:
 - Simplify the deployment process
@@ -188,3 +189,64 @@ https://d15kh86ub0unax.cloudfront.net/
 | Variable | Description |
 |----------|-------------|
 | `NOTES` | DynamoDB table name |
+
+## Deployment API
+
+This section describes the steps required to deploy the SecureNotes backend using AWS DynamoDB, AWS Lambda, and Amazon API Gateway.
+
+---
+
+### 1. Database Setup (Amazon DynamoDB)
+
+1. Create a DynamoDB table with the following configuration:
+
+   * **Table name:** `SecureNotes`
+   * **Partition key:** `note_id` (String)
+   * **Table class:** DynamoDB Standard
+   * **Capacity mode:** On-demand (optional, recommended for variable workloads)
+
+2. After the table is created, enable **Time to Live (TTL)**:
+
+   * Navigate to **Additional settings** → **Time to Live (TTL)**
+   * Enable TTL and set the attribute name to `ttl`
+
+   This configuration ensures that notes are automatically deleted after their expiration time.
+
+---
+
+### 2. Backend Functions (AWS Lambda)
+
+1. For each function defined in the `services` directory:
+
+   * Create a separate AWS Lambda function.
+   * Assign the execution role to **LabRole** instead of the default role.
+
+2. Configure each Lambda function according to its documentation:
+
+   * Set the required **environment variables**.
+   * Adjust runtime settings (e.g., timeout, memory) if needed.
+
+3. Repeat this process for all functions in the `services` directory to ensure full backend functionality.
+
+---
+
+### 3. API Layer (Amazon API Gateway)
+
+1. Create a **REST API** in Amazon API Gateway with the following settings:
+
+   * **API name:** `SecureNotes`
+   * **Endpoint type:** Regional
+
+2. For each Lambda function:
+
+   * Create a corresponding API resource (e.g., `/create`, `/read/{id}`).
+   * Add a **POST** method for each resource.
+   * Enable **Lambda Proxy Integration** and link the method to the appropriate Lambda function.
+
+3. Enable **CORS** on all API resources to allow cross-origin requests.
+
+4. Deploy the API:
+
+   * Create a deployment stage (e.g., `prod`).
+   * Note the **Invoke URL**, which will be used by the frontend or client applications to access the API.
+
