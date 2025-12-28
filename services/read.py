@@ -22,33 +22,8 @@ def lambda_handler(event, context):
         
         note_id = path_params.get('note_id')
 
-        body_str = event.get('body')
-        if not body_str:
-             return build_response(400, {'message': 'Request body is empty'})
-        
-        try:
-            body_json = json.loads(body_str)
-        except json.JSONDecodeError:
-             return build_response(400, {'message': 'Invalid JSON format'})
-
-        input_password = body_json.get('password')
-        if not input_password:
-             return build_response(400, {'message': 'Password is required inside request body'})
-
     except Exception as e:
         return build_response(400, {'message': f'Invalid request: {str(e)}'})
-
-    if note_id == 'test-frontend':
-        if input_password == 'password-dummy': 
-            return build_response(200, {
-                'message': 'Note retrieved and destroyed successfully (MOCK DATA)',
-                'content': 'API Gateway dan Lambda sudah terhubung. Semoga komputasi awan dapat A', 
-                'salt': 'salt-dummy',
-                'created_at': 1709251200,
-                'ttl': 1709254800
-            })
-        else:
-             return build_response(403, {'message': 'Invalid Password provided (MOCK)'})
 
     headers = event.get('headers', {})
     user_agent = headers.get('User-Agent', headers.get('user-agent', '')).lower()
@@ -59,27 +34,24 @@ def lambda_handler(event, context):
     table = dynamodb.Table(TABLE_NAME)
     
     try:
-        response = table.get_item(Key={'note_id': note_id})
-        item = response.get('Item')
-
-        if not item:
-            return build_response(404, {'message': 'Note not found or already destroyed.'})
-
-        stored_password = item.get('password')
+        response = table.delete_item(
+            Key={
+                'note_id': note_id
+            },
+            ConditionExpression='attribute_exists(note_id)', 
+            ReturnValues='ALL_OLD' 
+        )
         
-        if input_password != stored_password:
-            return build_response(403, {'message': 'Invalid Password provided.'})
-
-        table.delete_item(Key={'note_id': note_id})
+        deleted_item = response.get('Attributes')
         
         return build_response(200, {
             'message': 'Note retrieved and destroyed successfully',
-            'content': item.get('content'),
-            'salt': item.get('salt'),
-            'created_at': item.get('created_at'),
-            'ttl': item.get('ttl')
+            'content': deleted_item.get('content'),
+            'password': deleted_item.get('password'),
+            'salt': deleted_item.get('salt'),
+            'created_at': deleted_item.get('created_at'),
+            'ttl': deleted_item.get('ttl')     
         })
-
     except Exception as e:
         print(f"Error: {e}")
         return build_response(500, {'message': f"Internal Server Error: {str(e)}"})

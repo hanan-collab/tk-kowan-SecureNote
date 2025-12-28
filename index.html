@@ -8,6 +8,7 @@
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="utils/encryption.js"></script>
 
     <style>
         .spinner {
@@ -225,13 +226,16 @@
                 const content = document.getElementById('content').value;
                 const sanitizedContent = sanitizeHTML(content);
 
+                const password = document.getElementById('createPassword').value;
+                const encrypted = await encryptNote(password, sanitizedContent);
+
                 const res = await fetch(`${API_BASE}/create`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        content: sanitizedContent,
-                        password: document.getElementById('createPassword').value,
-                        salt: "random",
+                        content: encrypted.encrypted_message,
+                        password: encrypted.encrypted_password,
+                        salt: encrypted.salt,
                         ttl: Number(document.getElementById('ttl').value) || 60
                     })
                 });
@@ -278,16 +282,21 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                        password: password || null
-                    })
                 });
-
                 const data = await res.json();
                 if (!res.ok) throw data;
 
-                const sanitizedContent = sanitizeHTML(data.content);
+                const decreyptedData = await unlockSecureNote(
+                    password,
+                    data.salt,
+                    data.encrypted_message,
+                    data.encrypted_password
+                )
 
+                if (!decryptedContent) throw new Error("Invalid password or note not found");
+
+                const sanitizedContent = sanitizeHTML(decryptedContent);
+                
                 showResult(`
             <h3 class="text-xl font-semibold">✅ Note Found</h3>
             <div class="relative bg-white border rounded-lg p-3">
